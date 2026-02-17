@@ -3,5 +3,5 @@
 ## Запуск
 ```bash
 docker compose up -d
-docker compose run flyway migrate
+docker compose run flyway
 ```
