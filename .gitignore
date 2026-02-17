@@ -1,2 +1,23 @@
-.idea
-DB-semester-work.iml
+# IDEA / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+target/
+
+# OS
+.DS_Store
+Thumbs.db
+.DS_Store?
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temp
+*.tmp
+*.temp
+EOF
