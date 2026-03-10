@@ -1,3 +1,4 @@
+CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 -- создание схемы
 CREATE SCHEMA IF NOT EXISTS marketplace;
 

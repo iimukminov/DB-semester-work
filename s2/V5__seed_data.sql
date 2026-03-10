@@ -39,20 +39,29 @@ INSERT INTO marketplace.shops (owner_id, name)
 SELECT gs, 'Shop_' || gs
 FROM generate_series(1, 500) gs;
 
--- 300k: zipf (70% товаров в ТОП-50 магазинах из 500 всего)
+-- 300k: zipf + разнообразные теги и JSONB
 INSERT INTO marketplace.items (shop_id, name, description, category_id, price, tags, metadata)
 SELECT
     CASE WHEN random() < 0.7 THEN
         (random()*49)::int+1
     ELSE
         (random()*449)::int+51
-    END, -- Zipf
+    END, -- Zipf (70% товаров в ТОП-50 магазинах)
     'Item_'||gs,
     'Description '||gs,
     (gs%10)+1,
     (random()*10000)::numeric(10,2),
-    ARRAY['tag', 'new'],
-    jsonb_build_object('color', 'red')
+
+
+    CASE
+        WHEN random() < 0.01 THEN ARRAY['exclusive', (ARRAY['new', 'sale', 'popular'])[ceil(random()*3)]]
+        ELSE ARRAY[(ARRAY['new', 'sale', 'popular'])[ceil(random()*3)]]
+    END,
+
+    jsonb_build_object(
+        'color', (ARRAY['red', 'blue', 'green', 'black', 'white'])[ceil(random()*5)],
+        'weight', (random()*5)::numeric(5,2)
+    )
 FROM generate_series(1, 300000) gs;
 
 -- 400k: равномерное (status 3 значения равномерно)
