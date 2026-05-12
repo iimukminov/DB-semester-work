@@ -1,0 +1,16 @@
+spring:
+  application:
+    name: message-broker
+
+  datasource:
+    url: jdbc:postgresql://localhost:5433/marketplace_db
+    username: postgres
+    password: qwerty007
+
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        default_schema: marketplace
