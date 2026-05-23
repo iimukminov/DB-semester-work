@@ -1,0 +1,105 @@
+x-airflow-common:
+  &airflow-common
+  image: apache/airflow:2.8.1
+  environment:
+    - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres-airflow:5432/airflow
+    - AIRFLOW__CORE__LOAD_EXAMPLES=false
+    - _PIP_ADDITIONAL_REQUIREMENTS=clickhouse-driver pandas requests
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./data:/opt/airflow/data
+  depends_on:
+    - postgres-airflow
+
+services:
+  postgres-primary:
+    image: postgres:17
+    container_name: marketplace-primary
+    environment:
+      POSTGRES_DB: marketplace_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: qwerty007
+    ports:
+      - "5433:5432"
+    command: >
+      postgres
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.track=all
+      -c wal_level=logical
+    volumes:
+      - pg_primary_data:/var/lib/postgresql/data
+
+  flyway:
+    image: flyway/flyway
+    container_name: marketplace-flyway
+    depends_on:
+      - postgres-primary
+    command: ["migrate", "-baselineOnMigrate=true"]
+    volumes:
+      - ../migrations:/flyway/sql
+    environment:
+      FLYWAY_URL: jdbc:postgresql://postgres-primary:5432/marketplace_db
+      FLYWAY_USER: postgres
+      FLYWAY_PASSWORD: qwerty007
+      FLYWAY_BASELINE_VERSION: 1
+      FLYWAY_SCHEMAS: marketplace
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse-hw
+    ports:
+      - '8123:8123'
+      - '9000:9000'
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: password
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - ./clickhouse_init:/docker-entrypoint-initdb.d
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  postgres-airflow:
+    image: postgres:15
+    container_name: airflow-db
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - airflow_db_data:/var/lib/postgresql/data
+
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-init
+    command: version
+    environment:
+      - _AIRFLOW_DB_UPGRADE=true
+      - _AIRFLOW_WWW_USER_CREATE=true
+      - _AIRFLOW_WWW_USER_USERNAME=admin
+      - _AIRFLOW_WWW_USER_PASSWORD=admin
+
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow-webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    depends_on:
+      - airflow-init
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow-scheduler
+    command: scheduler
+    depends_on:
+      - airflow-init
+
+volumes:
+  pg_primary_data:
+  clickhouse_data:
+  airflow_db_data:
